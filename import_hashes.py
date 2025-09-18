@@ -48,7 +48,7 @@ if __name__ == "__main__":
     total_skipped = 0
     for algo in ["SHA256", "SHA1", "MD5"]:
         added, skipped = import_hashes(TXT_FILES[algo], DB_FILES[algo])
-        print(f"{algo} -> Yeni:{added}, Atlanan:{skipped}")
+        print(f"{algo} -> New:{added}, Skipped:{skipped}")
         total_added += added
         total_skipped += skipped
-    print(f"Toplam -> Yeni:{total_added}, Atlanan:{total_skipped}")
+    print(f"Toplam -> New:{total_added}, Skipped:{total_skipped}")
