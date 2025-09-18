@@ -34,9 +34,8 @@ def load_hashes(db_path):
 def scan_folder(folder):
     folder_path = pathlib.Path(folder)
     files = [fp for fp in folder_path.rglob("*") if fp.is_file()]
-    print(f"[+] Toplam dosya: {len(files)}. Tarama başlıyor...")
+    print(f"[+] Toplam dosya: {len(files)}. Initating scan...")
 
-    # her algo için hash setleri
     db_hashes = {algo: load_hashes(db) for algo, db in DB_FILES.items()}
 
     matches = []
@@ -59,7 +58,7 @@ def scan_folder(folder):
             if res:
                 matches.extend(res)
                 for fp, h, algo in res:
-                    print(f"[!] Zararlı tespit edildi: {fp} -> {h} ({algo})")
+                    print(f"[!] Virus dedected: {fp} -> {h} ({algo})")
 
     return matches
 
@@ -67,4 +66,4 @@ if __name__ == "__main__":
     import sys
     folder = sys.argv[1] if len(sys.argv) > 1 else "."
     matches = scan_folder(folder)
-    print(f"\n[+] Tarama bitti. Toplam eşleşme: {len(matches)}")
+    print(f"\n[+] Scanning is complete. Total matches: {len(matches)}")
