@@ -28,8 +28,10 @@ GAV is a lightweight, Python-based antivirus tool that can scan files and drives
 
 "cd C:\Users\YourUser\Desktop\GAV"
 
+2. Download Database(182mb) "wget https://e.pcloud.link/publink/show?code=XZ5kyUZfLdNkWs9XvJPYfPoKJDnXFvqe1gV"
 
-2. Run the launcher:
+
+3. Run the launcher:
 
 "py launch.py"
 
