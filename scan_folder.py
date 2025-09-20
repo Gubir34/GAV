@@ -1,69 +1,69 @@
-import hashlib
-import pathlib
-import sqlite3
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import os
+import platform
 from tqdm import tqdm
+import hashlib
+import sqlite3
 
-DB_FILES = {
+# --- SETTINGS ---
+DBS = {
     "SHA256": "signatures_sha256.db",
     "SHA1": "signatures_sha1.db",
-    "MD5": "signatures_md5.db"
+    "MD5": "signatures_md5.db",
 }
 
-HASH_ALGOS = {
-    "SHA256": "sha256",
-    "SHA1": "sha1",
-    "MD5": "md5"
-}
+# --- DB bağlan ---
+connections = {algo: sqlite3.connect(db) for algo, db in DBS.items()}
 
-def hash_file(path, algo="sha256", chunk_size=4*1024*1024):
-    h = hashlib.new(algo)
+def file_hash(path, algo):
+    h = hashlib.new(algo.lower())
     with open(path, "rb") as f:
-        while chunk := f.read(chunk_size):
+        for chunk in iter(lambda: f.read(65536), b""):
             h.update(chunk)
     return h.hexdigest()
 
-def load_hashes(db_path):
-    conn = sqlite3.connect(db_path)
-    cur = conn.cursor()
-    cur.execute("SELECT hash FROM signatures")
-    s = set(r[0] for r in cur.fetchall())
+def get_drives():
+    if platform.system() == "Windows":
+        import string
+        from ctypes import windll
+        bitmask = windll.kernel32.GetLogicalDrives()
+        drives = [f"{ltr}:\\" for i, ltr in enumerate(string.ascii_uppercase) if bitmask >> i & 1]
+        return drives
+    return ["/"]
+
+def iter_files(base):
+    for root, dirs, files in os.walk(base, topdown=True, followlinks=False):
+        for name in files:
+            yield os.path.join(root, name)
+
+# --- INPUT ---
+target = input("Enter folder or drive to scan (e.g., C:\\ or /): ").strip()
+targets = get_drives() if target == "/" else [target]
+
+# --- 1) ÖN TARAMA: Dosya toplama + ilerleme ---
+print("[*] Indexing files...")
+all_files = []
+for t in targets:
+    for f in tqdm(iter_files(t), desc=f"Indexing {t}", unit="file"):
+        all_files.append(f)
+
+print(f"[+] Total files: {len(all_files)}")
+
+# --- 2) VİRÜS TARAMASI: İlerleme çubuğuyla hash kontrol ---
+print("[*] Scanning files...")
+for fpath in tqdm(all_files, desc="Scanning", unit="file"):
+    try:
+        for algo, conn in connections.items():
+            h = file_hash(fpath, algo)
+            cur = conn.cursor()
+            cur.execute("SELECT 1 FROM signatures WHERE hash=?", (h,))
+            if cur.fetchone():
+                print(f"[!] Threat detected: {fpath} -> {h} ({algo})")
+                break
+    except Exception:
+        # izin hatası vs. varsa atla
+        continue
+
+for conn in connections.values():
     conn.close()
-    return s
 
-def scan_folder(folder):
-    folder_path = pathlib.Path(folder)
-    files = [fp for fp in folder_path.rglob("*") if fp.is_file()]
-    print(f"[+] Toplam dosya: {len(files)}. Initating scan...")
-
-    db_hashes = {algo: load_hashes(db) for algo, db in DB_FILES.items()}
-
-    matches = []
-
-    def check_file(fp):
-        result = []
-        for algo_name, algo_hash in HASH_ALGOS.items():
-            try:
-                h = hash_file(fp, algo_hash)
-            except:
-                continue
-            if h in db_hashes[algo_name]:
-                result.append((str(fp), h, algo_name))
-        return result
-
-    with ThreadPoolExecutor(max_workers=10) as ex:
-        futures = {ex.submit(check_file, fp): fp for fp in files}
-        for fut in tqdm(as_completed(futures), total=len(futures), unit="dosya"):
-            res = fut.result()
-            if res:
-                matches.extend(res)
-                for fp, h, algo in res:
-                    print(f"[!] Virus dedected: {fp} -> {h} ({algo})")
-
-    return matches
-
-if __name__ == "__main__":
-    import sys
-    folder = sys.argv[1] if len(sys.argv) > 1 else "."
-    matches = scan_folder(folder)
-    print(f"\n[+] Scanning is complete. Total matches: {len(matches)}")
+print("[+] Scan finished.")
