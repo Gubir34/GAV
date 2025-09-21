@@ -1,69 +1,42 @@
 import os
-import platform
-from tqdm import tqdm
 import hashlib
-import sqlite3
+import sys
+from tqdm import tqdm
 
-# --- SETTINGS ---
-DBS = {
-    "SHA256": "signatures_sha256.db",
-    "SHA1": "signatures_sha1.db",
-    "MD5": "signatures_md5.db",
-}
+def load_hashes(filename):
+    if not os.path.exists(filename):
+        return set()
+    with open(filename, "r") as f:
+        return set(h.strip() for h in f)
 
-# --- DB bağlan ---
-connections = {algo: sqlite3.connect(db) for algo, db in DBS.items()}
+SHA256_HASHES = load_hashes("hashes_sha256.txt")
+SHA1_HASHES = load_hashes("hashes_sha1.txt")
+MD5_HASHES = load_hashes("hashes_md5.txt")
 
-def file_hash(path, algo):
-    h = hashlib.new(algo.lower())
-    with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(65536), b""):
-            h.update(chunk)
-    return h.hexdigest()
-
-def get_drives():
-    if platform.system() == "Windows":
-        import string
-        from ctypes import windll
-        bitmask = windll.kernel32.GetLogicalDrives()
-        drives = [f"{ltr}:\\" for i, ltr in enumerate(string.ascii_uppercase) if bitmask >> i & 1]
-        return drives
-    return ["/"]
-
-def iter_files(base):
-    for root, dirs, files in os.walk(base, topdown=True, followlinks=False):
-        for name in files:
-            yield os.path.join(root, name)
-
-# --- INPUT ---
-target = input("Enter folder or drive to scan (e.g., C:\\ or /): ").strip()
-targets = get_drives() if target == "/" else [target]
-
-# --- 1) ÖN TARAMA: Dosya toplama + ilerleme ---
-print("[*] Indexing files...")
-all_files = []
-for t in targets:
-    for f in tqdm(iter_files(t), desc=f"Indexing {t}", unit="file"):
-        all_files.append(f)
-
-print(f"[+] Total files: {len(all_files)}")
-
-# --- 2) VİRÜS TARAMASI: İlerleme çubuğuyla hash kontrol ---
-print("[*] Scanning files...")
-for fpath in tqdm(all_files, desc="Scanning", unit="file"):
+def hash_file(path):
+    sha256 = hashlib.sha256()
+    sha1 = hashlib.sha1()
+    md5 = hashlib.md5()
     try:
-        for algo, conn in connections.items():
-            h = file_hash(fpath, algo)
-            cur = conn.cursor()
-            cur.execute("SELECT 1 FROM signatures WHERE hash=?", (h,))
-            if cur.fetchone():
-                print(f"[!] Threat detected: {fpath} -> {h} ({algo})")
-                break
-    except Exception:
-        # izin hatası vs. varsa atla
-        continue
+        with open(path, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                sha256.update(chunk)
+                sha1.update(chunk)
+                md5.update(chunk)
+        return sha256.hexdigest(), sha1.hexdigest(), md5.hexdigest()
+    except:
+        return None, None, None
 
-for conn in connections.values():
-    conn.close()
+def scan_folder(folder):
+    all_files = []
+    for root, dirs, files in os.walk(folder):
+        for file in files:
+            all_files.append(os.path.join(root, file))
+    for file in tqdm(all_files, desc="Scanning files"):
+        s256, s1, m5 = hash_file(file)
+        if s256 in SHA256_HASHES or s1 in SHA1_HASHES or m5 in MD5_HASHES:
+            print(f"[!] Threat detected: {file} -> {s256[:16]}...")
 
-print("[+] Scan finished.")
+if __name__ == "__main__":
+    folder = sys.argv[1] if len(sys.argv) > 1 else "."
+    scan_folder(folder)
