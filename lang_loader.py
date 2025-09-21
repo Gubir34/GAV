@@ -1,25 +1,28 @@
-import os
+# lang_loader.py
+import re
 
-LANG_DIR = "lang"
-CURRENT_LANG = "en"
+class LangLoader:
+    def __init__(self, filepath, default="en"):
+        self.filepath = filepath
+        self.default = default
+        self.data = {}
+        self.load_file()
 
-def set_lang(lng):
-    global CURRENT_LANG
-    CURRENT_LANG = lng
+    def load_file(self):
+        current_lang = None
+        with open(self.filepath, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith("[lng="):
+                    current_lang = line[5:-1]
+                    self.data[current_lang] = {}
+                elif "=" in line and current_lang:
+                    key, val = line.split("=", 1)
+                    self.data[current_lang][key.strip()] = val.strip()
 
-def get_text(key):
-    file_path = os.path.join(LANG_DIR, f"{CURRENT_LANG}.ltf")
-    if not os.path.exists(file_path):
-        return key
-    with open(file_path, "r", encoding="utf-8") as f:
-        content = f.read()
-    section_start = content.find(f"[lng={CURRENT_LANG}]")
-    if section_start == -1:
-        return key
-    section_end = content.find("[", section_start + 1)
-    section = content[section_start:section_end] if section_end != -1 else content[section_start:]
-    for line in section.splitlines():
-        line = line.strip()
-        if line.startswith(f"{key}"):
-            return line.split("=", 1)[1].strip()
-    return key
+    def t(self, key, **kwargs):
+        lang_data = self.data.get(self.default, {})
+        text = lang_data.get(key, f"[!]{key}")
+        if kwargs:
+            return text.format(**kwargs)
+        return text
