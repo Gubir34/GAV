@@ -1,30 +1,30 @@
-import os
 import subprocess
 import platform
-import urllib.request
-from lang_loader import get_text
+from lang_loader import LangLoader
 
-HASHES_URL = "https://edef1.pcloud.com/cBZwzHz1OZUoETr27ZZZGhYy0kZ2ZZSa0ZkZu7cILZ9zZhHZV8ZV0ZhpZMXZvLZK4ZKRZkpZwFZckZIkZNzZ5kyUZTBettr1UrquDWYYw6lsirFgXUSJV/hashes_raw.txt"
-HASHES_FILE = "hashes_raw.txt"
-
-def download_hashes():
-    print(get_text("loading_hashes"))
-    urllib.request.urlretrieve(HASHES_URL, HASHES_FILE)
-    print(get_text("downloaded_hashes"))
+lang = LangLoader("lng.ltf", default="en")
 
 def run_recompile():
-    if not os.path.exists(HASHES_FILE):
-        download_hashes()
+    print(lang.t("recompile_start"))
     subprocess.run(["python3" if platform.system() != "Windows" else "py", "recompile.py"], check=True)
+    print(lang.t("recompile_done"))
 
-def run_scan():
-    folder = input(get_text("scan_prompt"))
+def run_import_hashes():
+    print(lang.t("import_hashes_start"))
+    subprocess.run(["python3" if platform.system() != "Windows" else "py", "import_hashes.py"], check=True)
+    print(lang.t("import_hashes_done"))
+
+def start_scan():
+    folder = input(lang.t("scan_prompt") + ": ")
     subprocess.run(["python3" if platform.system() != "Windows" else "py", "scan_folder.py", folder], check=True)
 
 def main():
-    print(get_text("launching"))
+    print(lang.t("launching"))
+    print(lang.t("loading_hashes"))
     run_recompile()
-    run_scan()
+    run_import_hashes()
+    start_scan()
+    print(lang.t("scan_done"))
 
 if __name__ == "__main__":
     main()
