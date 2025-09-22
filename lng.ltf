@@ -17,6 +17,9 @@ scan_done = ---Scan completed---
 invalid_path = [!] Invalid path: {path}
 permission_error = [!] Permission denied: {path}
 scan_prompt = ---Enter folder or drive to scan (e.g., C:\ or /)---
+import_new = New
+import_skipped = Skipped
+total = Total
 
 [lng=tr]
 loading = ---Yükleniyor---
@@ -34,6 +37,9 @@ scan_done = ---Tarama tamamlandı---
 invalid_path = [!] Geçersiz yol: {path}
 permission_error = [!] İzin reddedildi: {path}
 scan_prompt = ---Taranacak klasörü veya sürücüyü girin (örn: C:\ veya /)---
+import_new = Yeni
+import_skipped = Atlanan
+total = Toplam
 
 [lng=es]
 loading = ---Cargando---
