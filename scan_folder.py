@@ -37,7 +37,7 @@ def compute_hashes(file_path):
         with open(file_path, "rb") as f:
             data = f.read()
         return hashlib.sha256(data).hexdigest()
-    except Exception as e:
+    except Exception:
         return None
 
 def scan_folder(folder):
@@ -49,7 +49,7 @@ def scan_folder(folder):
             all_files.append(os.path.join(root, f))
 
     if not all_files:
-        print("[!] No files found in folder.")
+        print(lang.t("no_files"))
         return
 
     pbar = tqdm(total=len(all_files), bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]')
