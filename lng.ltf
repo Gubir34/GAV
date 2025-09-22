@@ -22,6 +22,7 @@ scan_done = ---Scan completed---
 threat_detected = [!] Threat detected: {file} -> {hash}
 invalid_path = [!] Invalid path: {path}
 scan_prompt = ---Enter folder or drive to scan (e.g., C:\ or /)---
+hashes_not_found = [!] hashes_raw.txt not found, downloading..
 
 [lng=tr]
 loading = ---Yükleniyor---
@@ -44,6 +45,7 @@ scan_progress = ---Dosyalar taranıyor: {progress}%---
 scan_done = ---Tarama tamamlandı---
 threat_detected = [!] Tehdit bulundu: {file} -> {hash}
 invalid_path = [!] Geçersiz yol: {path}
+hashes_not_found = [!] hashes_raw.txt bulunamadı, indiriliyor...
 
 [lng=es]
 loading = ---Cargando---
