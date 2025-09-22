@@ -6,7 +6,7 @@ import curses
 from lang_loader import LangLoader
 
 INPUT_FILE = "hashes_raw.txt"
-HASHES_URL = "https://github.com/Gubir34/GAV/releases/download/antivirus/hashes_raw.txt"
+HASHES_URL = "https://www.dropbox.com/scl/fi/nxp7ju9gjwde1e40rx69q/hashes_raw.txt"
 
 supported_langs = [
     ("English", "en"),
@@ -77,4 +77,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
