@@ -6,7 +6,7 @@ import curses
 from lang_loader import LangLoader
 
 INPUT_FILE = "hashes_raw.txt"
-HASHES_URL = "https://www.dropbox.com/scl/fi/i9tb5dmk443l5lfpbd1s8/hashes_raw.txt?rlkey=kbvq6fdr847xw7hapfjwjclml&st=27huujix&dl=1"
+HASHES_URL = "https://www.dropbox.com/scl/fi/vh12opwwnigvl9f0v9fqp/hashes_raw.txt?rlkey=bwzdy2shcjjfoqeias1hb2mzc&st=t7n3hktp&dl=1"
 
 supported_langs = [
     ("English", "en"),
@@ -77,6 +77,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
