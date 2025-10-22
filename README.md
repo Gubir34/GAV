@@ -32,7 +32,7 @@
    ```
 
 2. Download the database  
-   [Download Database (182 MB)](https://e.pcloud.link/publink/show?code=XZ5kyUZfLdNkWs9XvJPYfPoKJDnXFvqe1gV)  
+   [Download Database (182 MB)]([https://www.dropbox.com/scl/fi/vh12opwwnigvl9f0v9fqp/hashes_raw.txt?rlkey=bwzdy2shcjjfoqeias1hb2mzc&st=t7n3hktp&dl=1])  
    Place the `.txt` file in the main folder (where `launch.py`, `scan_folder.py`, etc. are located).
 
 3. Run the launcher:
