@@ -100,6 +100,10 @@ def scan(root, on_start=None, on_progress=None, on_threat=None, on_error=None, c
                 if cancel_event.wait(0.1):
                     if proc.poll() is None:
                         proc.terminate()  # SIGTERM -> engine stops and still reports "done"
+                        try:
+                            proc.wait(timeout=5)
+                        except subprocess.TimeoutExpired:
+                            proc.kill()  # never leave the GUI waiting on a stuck engine
                     return
         threading.Thread(target=watch, daemon=True).start()
 
