@@ -24,6 +24,8 @@ internal static class GavLocator
         return null;
     }
 
+    // GAVCORE, next to GAV.exe, absolute PATH entries, then where install_gavcore.py puts it.
+    // The current directory is never searched.
     public static string? FindEngine(string? gavDir)
     {
         var candidates = new List<string?>
@@ -31,12 +33,15 @@ internal static class GavLocator
             Environment.GetEnvironmentVariable("GAVCORE"),
             Path.Combine(AppContext.BaseDirectory, "gavcore.exe"),
         };
-        if (gavDir is not null)
+        foreach (var dir in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator))
         {
-            candidates.Add(Path.Combine(gavDir, "GavCore", "build", "Release", "gavcore.exe"));
-            candidates.Add(Path.Combine(gavDir, "GavCore", "build", "gavcore.exe"));
-            candidates.Add(Path.Combine(gavDir, "gavcore.exe"));
+            if (dir.Length > 0 && Path.IsPathFullyQualified(dir))
+            {
+                candidates.Add(Path.Combine(dir, "gavcore.exe"));
+            }
         }
+        candidates.Add(Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "GavCore", "gavcore.exe"));
         return candidates.FirstOrDefault(p => !string.IsNullOrWhiteSpace(p) && File.Exists(p));
     }
 }

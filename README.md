@@ -65,36 +65,33 @@ During scanning, a progress bar appears and detected threats are printed:
 
 ## Architecture
 
-| Part | Language | What it does |
+| Part | Language | Where |
 |---|---|---|
-| `GavCore/` | C++17 | Scan engine: multi-threaded SHA256/SHA1/MD5 in one pass, safe file access, signature lookup |
-| `gav_core.py`, `scan_folder.py`, `gui_gtk.py`, `launch.py` | Python | Python client of the engine, CLI, GTK 4 GUI, hash DB tooling |
-| `winui/GavWinUI/` | C# | WinUI 3 GUI for Windows |
+| Scan engine (`gavcore` command) | C++17 | [Gubir34/GavCore](https://github.com/Gubir34/GavCore) |
+| Python client, CLI, GTK 4 GUI, hash DB tooling | Python | this repo (`gav_core.py`, `scan_folder.py`, `gui_gtk.py`, `launch.py`) |
+| WinUI 3 GUI | C# | this repo (`winui/GavWinUI/`) |
 
-The front-ends talk to the engine over a JSON-lines protocol, so each one can be swapped out without touching the others.
+The front-ends talk to the engine over a JSON-lines protocol (documented in the GavCore README).
 
-### Building GavCore
+### Installing GavCore
 
-Linux (needs OpenSSL and SQLite headers):
+The launcher installs the engine automatically if it is missing. To do it yourself:
 
 ```bash
-sudo apt install cmake libssl-dev libsqlite3-dev
-cmake -S GavCore -B GavCore/build -DCMAKE_BUILD_TYPE=Release
-cmake --build GavCore/build
+python install_gavcore.py            # Linux/macOS: ~/.local/bin (or /usr/local/bin as root)
+python install_gavcore.py --system   # /usr/local/bin
+py install_gavcore.py                # Windows: %LOCALAPPDATA%\Programs\GavCore, added to your PATH
+python install_gavcore.py --check    # show the installed version
+python install_gavcore.py --uninstall
 ```
 
-Windows (Visual Studio 2022 with C++; uses CNG and the system `winsqlite3`, no extra libraries):
+It downloads the GavCore release pinned in `gavcore.lock.json` and installs it only if its SHA256 matches the pinned value. `--latest` installs the newest release instead, checked only against that release's own `SHA256SUMS`. Pre-built binaries exist for Linux x86_64/arm64, macOS on Apple Silicon and Windows x64. On other platforms, build GavCore from source and put it on your `PATH` (or set `GAVCORE`).
 
-```powershell
-cmake -S GavCore -B GavCore\build
-cmake --build GavCore\build --config Release
-```
-
-Usage: `gavcore [--json] [--db-dir DIR] [--threads N] [--] <path>`. With `--json` it prints one event per line (`start`, `progress`, `threat`, `error`, `done`, `fatal`). Exit codes: 0 clean, 1 threats found, 2 no signatures, 130 cancelled. Without `--db-dir` it looks for the databases next to the executable and then in its parent folders.
+To move GAV to a new GavCore release, update `version` and the `assets` hashes (taken from the release's `SHA256SUMS`) in `gavcore.lock.json`.
 
 ## Graphical Interfaces
 
-Build GavCore and the signature databases first (run the launcher once).
+Install GavCore and build the signature databases first (run the launcher once).
 
 ### GTK 4 (Linux)
 
@@ -105,14 +102,14 @@ python3 gui_gtk.py              # optional: --lang tr  /path/to/scan
 
 ### WinUI 3 (Windows 10 1809+)
 
-Build GavCore first, then build the app with Visual Studio 2022 (the ".NET desktop development" and "Windows App SDK" workloads) or from a Developer PowerShell. `dotnet build` does not work for WinUI 3:
+Build the app with Visual Studio 2022 (the ".NET desktop development" and "Windows App SDK" workloads) or from a Developer PowerShell. `dotnet build` does not work for WinUI 3:
 
 ```powershell
 msbuild winui\GavWinUI\GavWinUI.csproj /restore /p:Configuration=Release /p:Platform=x64
 winui\GavWinUI\bin\x64\Release\net8.0-windows10.0.19041.0\win-x64\GAV.exe
 ```
 
-`gavcore.exe` is copied next to `GAV.exe`, so no Python is needed. The app finds `lng.ltf` and the databases by walking up from its own folder. Set `GAV_HOME` (and optionally `GAVCORE`) if you move it elsewhere.
+The app uses the installed `gavcore.exe`, or one bundled next to `GAV.exe` with `/p:GavCoreExe=path\to\gavcore.exe` (the CI build does this, so its artifact needs no Python). It finds `lng.ltf` and the databases by walking up from its own folder. Set `GAV_HOME` (and optionally `GAVCORE`) if you move it elsewhere.
 
 ---
 

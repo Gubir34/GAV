@@ -1,11 +1,14 @@
 import subprocess
-import platform
 import os
+import sys
 import urllib.request
 import curses
+import gav_core
 from lang_loader import LangLoader
 
-INPUT_FILE = "hashes_raw.txt"
+# Every helper script and data file is resolved next to this file, never from the current directory.
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+INPUT_FILE = os.path.join(BASE_DIR, "hashes_raw.txt")
 HASHES_URL = "https://www.dropbox.com/scl/fi/vh12opwwnigvl9f0v9fqp/hashes_raw.txt?rlkey=bwzdy2shcjjfoqeias1hb2mzc&st=t7n3hktp&dl=1"
 
 supported_langs = [
@@ -42,19 +45,34 @@ def select_language(stdscr):
         elif key in [10, 13]:  # Enter
             return supported_langs[current_row][1]
 
+def run_script(name, *args):
+    subprocess.run([sys.executable, os.path.join(BASE_DIR, name), *args], cwd=BASE_DIR, check=True)
+
+
+def ensure_engine():
+    try:
+        gav_core.find_engine()
+    except gav_core.EngineNotFoundError:
+        print("[!] GavCore engine not found, installing...")
+        run_script("install_gavcore.py")
+
+
 def run_recompile(lang):
     print(lang.t("recompile_start"))
-    subprocess.run(["python3" if platform.system() != "Windows" else "py", "recompile.py"], check=True)
+    run_script("recompile.py")
     print(lang.t("recompile_done"))
+
 
 def run_import_hashes(lang):
     print(lang.t("import_hashes_start"))
-    subprocess.run(["python3" if platform.system() != "Windows" else "py", "import_hashes.py"], check=True)
+    run_script("import_hashes.py")
     print(lang.t("import_hashes_done"))
+
 
 def start_scan(lang):
     folder = input(lang.t("scan_prompt") + ": ")
-    subprocess.run(["python3" if platform.system() != "Windows" else "py", "scan_folder.py", folder], check=True)
+    run_script("scan_folder.py", folder)
+
 
 def main():
     # Dil seçimi
@@ -69,6 +87,7 @@ def main():
         urllib.request.urlretrieve(HASHES_URL, INPUT_FILE)
         print("[+] Download completed: hashes_raw.txt")
 
+    ensure_engine()
     print(lang.t("loading_hashes"))
     run_recompile(lang)
     run_import_hashes(lang)

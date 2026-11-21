@@ -1,4 +1,4 @@
-"""Python client for the GavCore scan engine (GavCore/, C++).
+"""Python client for the GavCore scan engine (https://github.com/Gubir34/GavCore, C++).
 
 The engine runs as a separate process and streams JSON events; this module turns them
 into callbacks for the CLI and GTK front-ends.
@@ -7,7 +7,6 @@ into callbacks for the CLI and GTK front-ends.
 """
 import json
 import os
-import shutil
 import subprocess
 import sys
 import threading
@@ -54,23 +53,27 @@ def safe_display(text):
     return "".join(c if c.isprintable() else f"\\x{ord(c):02x}" for c in str(text))
 
 
+def _install_dirs():
+    if os.name == "nt":
+        local = os.environ.get("LOCALAPPDATA", os.path.expanduser("~\\AppData\\Local"))
+        return [os.path.join(local, "Programs", "GavCore")]
+    return [os.path.join(os.path.expanduser("~"), ".local", "bin"), "/usr/local/bin"]
+
+
 def find_engine():
-    """Locate gavcore: $GAVCORE, the CMake build folder, next to this file, then PATH. Never the CWD."""
-    candidates = [
-        os.environ.get("GAVCORE"),
-        os.path.join(BASE_DIR, "GavCore", "build", _EXE),
-        os.path.join(BASE_DIR, "GavCore", "build", "Release", _EXE),
-        os.path.join(BASE_DIR, _EXE),
-    ]
-    for path in candidates:
-        if path and os.path.isfile(path) and os.access(path, os.X_OK):
+    """Locate gavcore: $GAVCORE, PATH, then the folders install_gavcore.py uses. Never the CWD."""
+    override = os.environ.get("GAVCORE")
+    if override:
+        if os.path.isfile(override):
+            return override
+        raise EngineNotFoundError(f"GAVCORE points to a missing file: {override}")
+    # Manual PATH walk: shutil.which() on Windows also looks in the current directory.
+    path_dirs = [d for d in os.environ.get("PATH", "").split(os.pathsep) if d and os.path.isabs(d)]
+    for directory in path_dirs + _install_dirs():
+        path = os.path.join(directory, _EXE)
+        if os.path.isfile(path) and os.access(path, os.X_OK):
             return path
-    found = shutil.which("gavcore")
-    if found:
-        return found
-    raise EngineNotFoundError(
-        "gavcore not found. Build it with: cmake -S GavCore -B GavCore/build && cmake --build GavCore/build "
-        "--config Release (or set GAVCORE to the executable)")
+    raise EngineNotFoundError("gavcore is not installed. Run: python install_gavcore.py")
 
 
 def _engine_command(root, json_mode, db_dir, threads, engine):

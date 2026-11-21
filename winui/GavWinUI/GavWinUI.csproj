@@ -15,11 +15,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
-  <!-- Ship the C++ engine next to GAV.exe when it has been built (cmake -S GavCore -B GavCore/build). -->
-  <PropertyGroup>
-    <GavCoreExe>$(MSBuildThisFileDirectory)..\..\GavCore\build\Release\gavcore.exe</GavCoreExe>
-  </PropertyGroup>
-  <ItemGroup Condition="Exists('$(GavCoreExe)')">
+  <!-- Optional: bundle a gavcore.exe next to GAV.exe with /p:GavCoreExe=path\to\gavcore.exe -->
+  <ItemGroup Condition="'$(GavCoreExe)' != '' and Exists('$(GavCoreExe)')">
     <None Include="$(GavCoreExe)" Link="gavcore.exe" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>

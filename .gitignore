@@ -11,5 +11,3 @@ winui/**/bin/
 winui/**/obj/
 winui/**/.vs/
 
-# GavCore build output
-GavCore/build/

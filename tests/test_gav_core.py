@@ -13,8 +13,10 @@ import gav_core  # noqa: E402
 try:
     ENGINE = gav_core.find_engine()
 except gav_core.EngineNotFoundError:
+    if os.environ.get("GAV_REQUIRE_ENGINE") == "1":  # CI: a missing engine must fail, not skip
+        raise
     ENGINE = None
-pytestmark = pytest.mark.skipif(ENGINE is None, reason="gavcore is not built")
+pytestmark = pytest.mark.skipif(ENGINE is None, reason="gavcore is not installed (python install_gavcore.py)")
 
 SAMPLES = {"SHA256": b"GAV-TEST-ONE", "SHA1": b"GAV-TEST-TWO", "MD5": b"GAV-TEST-THREE"}
 DB_NAMES = {"SHA256": "signatures_sha256.db", "SHA1": "signatures_sha1.db", "MD5": "signatures_md5.db"}

@@ -58,7 +58,7 @@ public sealed partial class MainWindow : Window
         {
             ShowStatus(InfoBarSeverity.Error, _gavDir is null
                 ? "GAV folder (lng.ltf) not found. Set GAV_HOME to the GAV folder."
-                : "gavcore.exe not found. Build GavCore or set GAVCORE to the executable.");
+                : "gavcore.exe not found. Run: py install_gavcore.py");
             ScanButton.IsEnabled = false;
         }
         else
