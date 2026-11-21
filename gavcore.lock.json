@@ -1,5 +1,10 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "base_url": "https://github.com/Gubir34/GavCore/releases/download/v{version}/",
-  "assets": {}
+  "assets": {
+    "gavcore-linux-x86_64": "e63a6dc96ae2c3fe76d005101b2484a44a33f2ca30ec3479ed1162c24082cd22",
+    "gavcore-linux-arm64": "570e616a8447521da21c62d1d443ed64652a39371a19404e838fee94d2b2c7e9",
+    "gavcore-macos-arm64": "8a9c051b793c7386ee43f1e7822531a986b42e04844e5ad0b71a3b470acac0d9",
+    "gavcore-windows-x64.exe": "ef899ee337c3753ccedbba54b5ad74a29579a095352f7b110747db3f7ad7fdea"
+  }
 }
