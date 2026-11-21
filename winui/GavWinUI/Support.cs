@@ -2,26 +2,42 @@ using System.Globalization;
 
 namespace GavWinUI;
 
-/// <summary>Finds the GAV folder (the one containing gav_core.py).</summary>
+/// <summary>Finds the GAV folder (lng.ltf + signature databases) and the GavCore engine.</summary>
 internal static class GavLocator
 {
-    public static string? Find()
+    public static string? FindGavDir()
     {
         var fromEnv = Environment.GetEnvironmentVariable("GAV_HOME");
-        if (!string.IsNullOrWhiteSpace(fromEnv) && File.Exists(Path.Combine(fromEnv, "gav_core.py")))
+        if (!string.IsNullOrWhiteSpace(fromEnv) && File.Exists(Path.Combine(fromEnv, "lng.ltf")))
         {
             return Path.GetFullPath(fromEnv);
         }
 
         for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
         {
-            if (File.Exists(Path.Combine(dir.FullName, "gav_core.py")))
+            if (File.Exists(Path.Combine(dir.FullName, "lng.ltf")))
             {
                 return dir.FullName;
             }
         }
 
         return null;
+    }
+
+    public static string? FindEngine(string? gavDir)
+    {
+        var candidates = new List<string?>
+        {
+            Environment.GetEnvironmentVariable("GAVCORE"),
+            Path.Combine(AppContext.BaseDirectory, "gavcore.exe"),
+        };
+        if (gavDir is not null)
+        {
+            candidates.Add(Path.Combine(gavDir, "GavCore", "build", "Release", "gavcore.exe"));
+            candidates.Add(Path.Combine(gavDir, "GavCore", "build", "gavcore.exe"));
+            candidates.Add(Path.Combine(gavDir, "gavcore.exe"));
+        }
+        return candidates.FirstOrDefault(p => !string.IsNullOrWhiteSpace(p) && File.Exists(p));
     }
 }
 

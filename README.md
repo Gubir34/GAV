@@ -63,9 +63,38 @@ During scanning, a progress bar appears and detected threats are printed:
 
 ---
 
+## Architecture
+
+| Part | Language | What it does |
+|---|---|---|
+| `GavCore/` | C++17 | Scan engine: multi-threaded SHA256/SHA1/MD5 in one pass, safe file access, signature lookup |
+| `gav_core.py`, `scan_folder.py`, `gui_gtk.py`, `launch.py` | Python | Python client of the engine, CLI, GTK 4 GUI, hash DB tooling |
+| `winui/GavWinUI/` | C# | WinUI 3 GUI for Windows |
+
+The front-ends talk to the engine over a JSON-lines protocol, so each one can be swapped out without touching the others.
+
+### Building GavCore
+
+Linux (needs OpenSSL and SQLite headers):
+
+```bash
+sudo apt install cmake libssl-dev libsqlite3-dev
+cmake -S GavCore -B GavCore/build -DCMAKE_BUILD_TYPE=Release
+cmake --build GavCore/build
+```
+
+Windows (Visual Studio 2022 with C++; uses CNG and the system `winsqlite3`, no extra libraries):
+
+```powershell
+cmake -S GavCore -B GavCore\build
+cmake --build GavCore\build --config Release
+```
+
+Usage: `gavcore [--json] [--db-dir DIR] [--threads N] [--] <path>`. With `--json` it prints one event per line (`start`, `progress`, `threat`, `error`, `done`, `fatal`). Exit codes: 0 clean, 1 threats found, 2 no signatures, 130 cancelled. Without `--db-dir` it looks for the databases next to the executable and then in its parent folders.
+
 ## Graphical Interfaces
 
-Both GUIs use the same scan engine (`gav_core.py`) and the translations in `lng.ltf`. Build the signature databases first (run the launcher once).
+Build GavCore and the signature databases first (run the launcher once).
 
 ### GTK 4 (Linux)
 
@@ -76,18 +105,14 @@ python3 gui_gtk.py              # optional: --lang tr  /path/to/scan
 
 ### WinUI 3 (Windows 10 1809+)
 
-Requires the .NET 8 SDK and Python 3 (`py` launcher) on `PATH`.
+Build GavCore first, then build the app with Visual Studio 2022 (the ".NET desktop development" and "Windows App SDK" workloads) or from a Developer PowerShell. `dotnet build` does not work for WinUI 3:
 
 ```powershell
-dotnet build winui\GavWinUI\GavWinUI.csproj -c Release -p:Platform=x64
+msbuild winui\GavWinUI\GavWinUI.csproj /restore /p:Configuration=Release /p:Platform=x64
 winui\GavWinUI\bin\x64\Release\net8.0-windows10.0.19041.0\win-x64\GAV.exe
 ```
 
-The app finds `gav_core.py` by walking up from its own folder; set `GAV_HOME` if you move the executable elsewhere.
-
-### Engine CLI
-
-`python gav_core.py <folder>` prints results, and `--json` emits one JSON event per line (`start`, `progress`, `threat`, `error`, `done`, `fatal`). The exit code is 1 when threats are found and 2 when there are no signatures.
+`gavcore.exe` is copied next to `GAV.exe`, so no Python is needed. The app finds `lng.ltf` and the databases by walking up from its own folder. Set `GAV_HOME` (and optionally `GAVCORE`) if you move it elsewhere.
 
 ---
 

@@ -28,12 +28,13 @@ public sealed class ResultItem
 
 public sealed partial class MainWindow : Window
 {
-    private const string ThreatGlyph = "";
-    private const string ErrorGlyph = "";
+    private const string ThreatGlyph = "\uE7BA";
+    private const string ErrorGlyph = "\uE897";
 
     private readonly ObservableCollection<ResultItem> _threats = new();
     private readonly ObservableCollection<ResultItem> _errors = new();
-    private readonly string? _gavDir = GavLocator.Find();
+    private readonly string? _gavDir = GavLocator.FindGavDir();
+    private readonly string? _engine = GavLocator.FindEngine(GavLocator.FindGavDir());
     private readonly Ltf _t;
     private CancellationTokenSource? _cts;
     private bool _finished;
@@ -53,9 +54,11 @@ public sealed partial class MainWindow : Window
         SetBusy(false);
         ProgressText.Text = _t["gui_ready"];
 
-        if (_gavDir is null)
+        if (_gavDir is null || _engine is null)
         {
-            ShowStatus(InfoBarSeverity.Error, "gav_core.py not found. Set the GAV_HOME environment variable to the GAV folder.");
+            ShowStatus(InfoBarSeverity.Error, _gavDir is null
+                ? "GAV folder (lng.ltf) not found. Set GAV_HOME to the GAV folder."
+                : "gavcore.exe not found. Build GavCore or set GAVCORE to the executable.");
             ScanButton.IsEnabled = false;
         }
         else
@@ -99,7 +102,7 @@ public sealed partial class MainWindow : Window
         }
 
         var path = PathBox.Text.Trim();
-        if (_gavDir is null || path.Length == 0 || !(Directory.Exists(path) || File.Exists(path)))
+        if (_gavDir is null || _engine is null || path.Length == 0 || !(Directory.Exists(path) || File.Exists(path)))
         {
             ShowStatus(InfoBarSeverity.Error, _t.Format("gui_invalid_path", ("path", path)));
             return;
@@ -132,7 +135,7 @@ public sealed partial class MainWindow : Window
 
     private async Task RunScanAsync(string target, CancellationToken ct)
     {
-        using var process = StartPython(target);
+        using var process = StartEngine(target);
         using var registration = ct.Register(() =>
         {
             try
@@ -142,8 +145,9 @@ public sealed partial class MainWindow : Window
                     process.Kill(entireProcessTree: true);
                 }
             }
-            catch (InvalidOperationException)
+            catch (Exception ex) when (ex is InvalidOperationException or Win32Exception)
             {
+                // Already exited.
             }
         });
 
@@ -169,52 +173,43 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private Process StartPython(string target)
+    private Process StartEngine(string target)
     {
-        var candidates = new (string Exe, string[] Prefix)[]
+        var psi = new ProcessStartInfo(_engine!)
         {
-            ("py", new[] { "-3" }),
-            ("python", Array.Empty<string>()),
-            ("python3", Array.Empty<string>()),
+            WorkingDirectory = _gavDir!,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8,
         };
+        psi.ArgumentList.Add("--db-dir");
+        psi.ArgumentList.Add(_gavDir!);
+        psi.ArgumentList.Add("--json");
+        psi.ArgumentList.Add("--");
+        psi.ArgumentList.Add(target);
+        return Process.Start(psi) ?? throw new InvalidOperationException("Could not start gavcore.exe");
+    }
 
-        foreach (var (exe, prefix) in candidates)
+    // File names can carry bidi overrides (e.g. "invoice\u202Egpj.exe") or control characters: show them escaped.
+    private static string Display(string text)
+    {
+        var sb = new StringBuilder(text.Length);
+        foreach (var c in text)
         {
-            var psi = new ProcessStartInfo(exe)
+            var category = CharUnicodeInfo.GetUnicodeCategory(c);
+            if (char.IsControl(c) || category == UnicodeCategory.Format)
             {
-                WorkingDirectory = _gavDir!,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                StandardOutputEncoding = Encoding.UTF8,
-                StandardErrorEncoding = Encoding.UTF8,
-            };
-            foreach (var arg in prefix)
-            {
-                psi.ArgumentList.Add(arg);
+                sb.Append("\\u").Append(((int)c).ToString("x4", CultureInfo.InvariantCulture));
             }
-            psi.ArgumentList.Add(Path.Combine(_gavDir!, "gav_core.py"));
-            psi.ArgumentList.Add("--json");
-            psi.ArgumentList.Add(target);
-            psi.Environment["PYTHONUTF8"] = "1";
-            psi.Environment["PYTHONIOENCODING"] = "utf-8";
-
-            try
+            else
             {
-                var process = Process.Start(psi);
-                if (process is not null)
-                {
-                    return process;
-                }
-            }
-            catch (Win32Exception)
-            {
-                // Interpreter not on PATH; try the next one.
+                sb.Append(c);
             }
         }
-
-        throw new InvalidOperationException("Python 3 was not found (tried py, python, python3).");
+        return sb.ToString();
     }
 
     private void HandleEvent(string line)
@@ -242,7 +237,7 @@ public sealed partial class MainWindow : Window
                     break;
                 case "threat":
                     _threats.Add(new ResultItem(
-                        ev.GetProperty("path").GetString() ?? "",
+                        Display(ev.GetProperty("path").GetString() ?? ""),
                         $"{ev.GetProperty("algo").GetString()}  {ev.GetProperty("hash").GetString()}",
                         ThreatGlyph));
                     UpdateHeaders();
@@ -250,7 +245,7 @@ public sealed partial class MainWindow : Window
                     break;
                 case "error":
                     _errors.Add(new ResultItem(
-                        ev.GetProperty("path").GetString() ?? "",
+                        Display(ev.GetProperty("path").GetString() ?? ""),
                         ev.GetProperty("reason").GetString() ?? "",
                         ErrorGlyph));
                     UpdateHeaders();
@@ -258,9 +253,15 @@ public sealed partial class MainWindow : Window
                 case "fatal":
                     _finished = true;
                     ProgressText.Text = _t["gui_ready"];
-                    ShowStatus(InfoBarSeverity.Error, _t["gui_no_signatures"]);
+                    var message = ev.GetProperty("message").GetString() ?? "";
+                    ShowStatus(InfoBarSeverity.Error,
+                        message.StartsWith("No signatures", StringComparison.Ordinal) ? _t["gui_no_signatures"] : message);
                     break;
                 case "done":
+                    if (ev.TryGetProperty("cancelled", out var c) && c.GetBoolean())
+                    {
+                        break;  // reported by RunScanAsync
+                    }
                     _finished = true;
                     var threats = ev.GetProperty("threats").GetInt32();
                     Progress.IsIndeterminate = false;

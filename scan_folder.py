@@ -18,8 +18,9 @@ def scan_folder(folder):
         if total:
             pbar = tqdm(total=total, bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]')
 
-    def on_progress(done, total, _path):
-        pbar.update(1)
+    def on_progress(done, total):
+        pbar.n = done
+        pbar.refresh()
         pbar.set_description(lang.t("scan_progress", progress=int(done / total * 100)))
 
     def on_threat(threat):
@@ -33,6 +34,9 @@ def scan_folder(folder):
                                 on_threat=on_threat, on_error=on_error)
     except gav_core.NoSignaturesError:
         print(lang.t("gui_no_signatures"))
+        return None
+    except gav_core.EngineNotFoundError as e:
+        print(f"[x] {e}")
         return None
     finally:
         if pbar:

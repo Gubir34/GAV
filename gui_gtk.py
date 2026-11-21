@@ -171,7 +171,7 @@ class GavWindow(Gtk.ApplicationWindow):
         )
         self.worker.start()
 
-    def _progress_from_worker(self, done, total, path):
+    def _progress_from_worker(self, done, total):
         now = time.monotonic()
         if done == total or now - self.last_progress >= PROGRESS_INTERVAL:
             self.last_progress = now

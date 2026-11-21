@@ -1,0 +1,53 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build libssl-dev libsqlite3-dev
+      - name: Build GavCore
+        run: |
+          cmake -S GavCore -B GavCore/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build GavCore/build
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Test
+        run: |
+          pip install pytest flake8 -r requirements.txt
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          pytest -v
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build GavCore
+        run: |
+          cmake -S GavCore -B GavCore/build
+          cmake --build GavCore/build --config Release
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Test GavCore
+        run: |
+          pip install pytest -r requirements.txt
+          pytest -v
+      - uses: microsoft/setup-msbuild@v2
+      - name: Build WinUI app
+        run: msbuild winui/GavWinUI/GavWinUI.csproj /restore /m /p:Configuration=Release /p:Platform=x64
+      - name: Upload WinUI app
+        uses: actions/upload-artifact@v4
+        with:
+          name: GAV-WinUI-x64
+          path: winui/GavWinUI/bin/x64/Release/
