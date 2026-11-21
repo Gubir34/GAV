@@ -1,8 +1,13 @@
 # lang_loader.py
-import re
+import os
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 
 class LangLoader:
     def __init__(self, filepath, default="en"):
+        if not os.path.isabs(filepath):
+            filepath = os.path.join(BASE_DIR, filepath)
         self.filepath = filepath
         self.default = default
         self.data = {}
@@ -21,8 +26,9 @@ class LangLoader:
                     self.data[current_lang][key.strip()] = val.strip()
 
     def t(self, key, **kwargs):
-        lang_data = self.data.get(self.default, {})
-        text = lang_data.get(key, f"[!]{key}")
+        text = self.data.get(self.default, {}).get(key)
+        if text is None:
+            text = self.data.get("en", {}).get(key, f"[!]{key}")
         if kwargs:
             return text.format(**kwargs)
         return text

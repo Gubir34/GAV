@@ -1,0 +1,12 @@
+# Generated signature data
+hashes_raw.txt
+hashes_sha256.txt
+hashes_sha1.txt
+hashes_md5.txt
+signatures_*.db
+__pycache__/
+
+# WinUI build output
+winui/**/bin/
+winui/**/obj/
+winui/**/.vs/

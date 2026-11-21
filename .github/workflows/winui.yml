@@ -1,0 +1,30 @@
+name: WinUI build
+
+on:
+  push:
+    paths:
+      - "winui/**"
+      - ".github/workflows/winui.yml"
+  pull_request:
+    paths:
+      - "winui/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Build
+        run: dotnet build winui/GavWinUI/GavWinUI.csproj -c Release -p:Platform=x64
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: GAV-WinUI-x64
+          path: winui/GavWinUI/bin/x64/Release/

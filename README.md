@@ -63,6 +63,34 @@ During scanning, a progress bar appears and detected threats are printed:
 
 ---
 
+## Graphical Interfaces
+
+Both GUIs use the same scan engine (`gav_core.py`) and the translations in `lng.ltf`. Build the signature databases first (run the launcher once).
+
+### GTK 4 (Linux)
+
+```bash
+sudo apt install python3-gi gir1.2-gtk-4.0   # Fedora: python3-gobject gtk4
+python3 gui_gtk.py              # optional: --lang tr  /path/to/scan
+```
+
+### WinUI 3 (Windows 10 1809+)
+
+Requires the .NET 8 SDK and Python 3 (`py` launcher) on `PATH`.
+
+```powershell
+dotnet build winui\GavWinUI\GavWinUI.csproj -c Release -p:Platform=x64
+winui\GavWinUI\bin\x64\Release\net8.0-windows10.0.19041.0\win-x64\GAV.exe
+```
+
+The app finds `gav_core.py` by walking up from its own folder; set `GAV_HOME` if you move the executable elsewhere.
+
+### Engine CLI
+
+`python gav_core.py <folder>` prints results, and `--json` emits one JSON event per line (`start`, `progress`, `threat`, `error`, `done`, `fatal`). The exit code is 1 when threats are found and 2 when there are no signatures.
+
+---
+
 ## Database Files
 
 - `signatures_sha256.db` → stores SHA256 hashes  
